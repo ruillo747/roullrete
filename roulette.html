@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Roulette</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            text-align: center;
+        }
+        
+        .container {
+            max-width: 90%;
+            width: 100%;
+        }
+        
+        h1 {
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .wheel-container {
+            position: relative;
+            width: 300px;
+            height: 300px;
+            margin: 0 auto 30px;
+        }
+        
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                #ff0000, #ff7f00, #ffff00, #00ff00, 
+                #0000ff, #4b0082, #8b00ff, #ff0000
+            );
+            position: relative;
+            overflow: hidden;
+            transition: transform 4s cubic-bezier(0.17, 0.67, 0.12, 0.99);
+            transform: rotate(0deg);
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .wheel-center {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 20px solid transparent;
+            border-right: 20px solid transparent;
+            border-top: 40px solid gold;
+            z-index: 5;
+        }
+        
+        button {
+            background: gold;
+            color: #1e3c72;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:hover {
+            background: #ffd700;
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        .result {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            min-height: 36px;
+            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .sector {
+            position: absolute;
+            width: 50%;
+            height: 50%;
+            transform-origin: bottom right;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .sector span {
+            transform: rotate(45deg);
+            color: white;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px black;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎰 Телеграм Рулетка</h1>
+        
+        <div class="wheel-container">
+            <div class="pointer"></div>
+            <div class="wheel" id="wheel">
+                <!-- Сектора будут добавлены через JS -->
+            </div>
+            <div class="wheel-center"></div>
+        </div>
+        
+        <button id="spin-btn">Крутить рулетку!</button>
+        
+        <div class="result" id="result"></div>
+    </div>
+
+    <script>
+        // Инициализация Telegram Web App
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        
+        // Цвета и значения секторов
+        const sectors = [
+            { color: "#FF0000", text: "1", value: 1 },
+            { color: "#000000", text: "2", value: 2 },
+            { color: "#FF0000", text: "3", value: 3 },
+            { color: "#000000", text: "4", value: 4 },
+            { color: "#FF0000", text: "5", value: 5 },
+            { color: "#000000", text: "6", value: 6 },
+            { color: "#FF0000", text: "7", value: 7 },
+            { color: "#000000", text: "8", value: 8 }
+        ];
+        
+        // Создаем рулетку
+        const wheel = document.getElementById('wheel');
+        const spinBtn = document.getElementById('spin-btn');
+        const resultEl = document.getElementById('result');
+        
+        // Генерируем сектора
+        sectors.forEach((sector, index) => {
+            const angle = (360 / sectors.length) * index;
+            const sectorEl = document.createElement('div');
+            sectorEl.className = 'sector';
+            sectorEl.style.transform = `rotate(${angle}deg)`;
+            sectorEl.style.backgroundColor = sector.color;
+            
+            const textEl = document.createElement('span');
+            textEl.textContent = sector.text;
+            sectorEl.appendChild(textEl);
+            
+            wheel.appendChild(sectorEl);
+        });
+        
+        // Функция вращения
+        spinBtn.addEventListener('click', () => {
+            spinBtn.disabled = true;
+            resultEl.textContent = '';
+            
+            // Случайный угол вращения (5-10 полных оборотов + случайный сектор)
+            const spins = 5 + Math.floor(Math.random() * 5);
+            const sectorAngle = 360 / sectors.length;
+            const winningSector = Math.floor(Math.random() * sectors.length);
+            const rotation = spins * 360 + (winningSector * sectorAngle);
+            
+            wheel.style.transform = `rotate(${-rotation}deg)`;
+            
+            setTimeout(() => {
+                spinBtn.disabled = false;
+                const result = sectors[winningSector];
+                resultEl.textContent = `Выпало: ${result.text}! ${result.value === 1 ? 'Джекпот! 🎉' : ''}`;
+                
+                // Можно отправить результат в бота
+                if (result.value === 1) {
+                    Telegram.WebApp.sendData(JSON.stringify({
+                        action: 'roulette_result',
+                        result: 'jackpot'
+                    }));
+                }
+            }, 4000);
+        });
+    </script>
+</body>
+</html>
